@@ -1,0 +1,4 @@
+zio-utils is a collection of ZIO utilities to handle ZIO devices. These utilities are based on the libzio library.
+
+
+lszio: it show details about connected ZIO devices.
