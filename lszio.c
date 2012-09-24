@@ -1,3 +1,10 @@
+/*
+ * Copyright 2012 Federico Vaga <federico.vaga@gmail.com>
+ *
+ * lszio is a ZIO tool which show details about connected ZIO device.
+ * It is a clone of lspci, but for ZIO devices.
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -74,10 +81,11 @@ int main(int argc, char *argv[])
 			zds_print_attributes(chan->attr, chan->n_attr, "    ");
 			if (chan->buf) {
 				printf("\n    Buffer: %s\n", chan->buf->dir->name);
-				zds_print_attributes(chan->buf->attr, chan->buf->n_attr, "  ");
+				zds_print_attributes(chan->buf->attr, chan->buf->n_attr, "    ");
 			}
 		}
 	}
+
 	zio_destroy_device(zdev);
 	exit(0);
 }
