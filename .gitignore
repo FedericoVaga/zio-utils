@@ -18,6 +18,7 @@
 *.out
 \#*\#
 *.sh
+lszio
 # eclipse files
 .cproject
 .project
