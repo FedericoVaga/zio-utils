@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -21,9 +22,13 @@
 /* print program help */
 static void zds_help()
 {
-	printf("zio-dev-status DEVICE\n\n");
-	printf("The program print the status of all ZIO attributes of DEVICE\n\n");
-	printf("DEVICE: ZIO name of the device\n\n");
+	printf("\nlszio [options]\n\n");
+	printf("The program list connected ZIO devices\n\n");
+	printf("Options:");
+	printf("-v: verbose output, show device attributes status\n");
+	printf("-d <device name>: look for a particular device\n");
+	printf("-w: show ZIO hardware device\n");
+	printf("-h: show this help\n\n");
 }
 
 static void zds_print_attributes(struct sysfs_attr **attr, unsigned int n, char *space)
@@ -45,47 +50,87 @@ static void zds_print_attributes(struct sysfs_attr **attr, unsigned int n, char 
 	}
 }
 
-int main(int argc, char *argv[])
+static void zds_print_all_attributes(char *name)
 {
 	struct zio_device *zdev;
 	struct zio_cset *cset;
 	struct zio_channel *chan;
-	unsigned int i, j;
+	int i, j;
 
-	if (argc == 1) {
-		zds_help();
-		exit(1);
-	}
-
-	zdev = zio_create_device(argv[1]);
+	zdev = zio_create_device(name);
 	if (!zdev) {
 		printf("Error");
 		exit(1);
 	}
 
-	printf("Device status\n");
-	printf("Device name: %s\n", argv[1]);
-	zds_print_attributes(zdev->attr, zdev->n_attr, "");
+	printf("    Device name: %s\n", name);
+	zds_print_attributes(zdev->attr, zdev->n_attr, "    ");
 
 	for (i = 0; i < zdev->n_cset; ++i) {
 		cset = &zdev->cset[i];
-		printf("\n  Channel Set: %s\n", cset->dir->name);
-		zds_print_attributes(cset->attr, cset->n_attr, "  ");
+		printf("\n        Channel Set: %s\n", cset->dir->name);
+		zds_print_attributes(cset->attr, cset->n_attr, "        ");
 		if (cset->trg) {
-			printf("\n    Trigger: %s\n", cset->trg->dir->name);
-			zds_print_attributes(cset->trg->attr, cset->trg->n_attr, "    ");
+			printf("\n            Trigger: %s\n", cset->trg->dir->name);
+			zds_print_attributes(cset->trg->attr, cset->trg->n_attr, "            ");
 		}
 		for (j = 0; j < cset->n_chan; ++j) {
 			chan = &cset->chan[j];
-			printf("\n    Channel: %s\n", chan->dir->name);
-			zds_print_attributes(chan->attr, chan->n_attr, "    ");
+			printf("\n            Channel: %s\n", chan->dir->name);
+			zds_print_attributes(chan->attr, chan->n_attr, "            ");
 			if (chan->buf) {
-				printf("\n    Buffer: %s\n", chan->buf->dir->name);
-				zds_print_attributes(chan->buf->attr, chan->buf->n_attr, "    ");
+				printf("\n                Buffer: %s\n", chan->buf->dir->name);
+				zds_print_attributes(chan->buf->attr, chan->buf->n_attr, "                ");
 			}
 		}
 	}
 
 	zio_destroy_device(zdev);
+}
+
+int main(int argc, char *argv[])
+{
+	struct dirent **namelist;
+	int c, v = 0, n, i;
+	int show_hw = 0;
+	char *device = NULL;
+
+	while ((c = getopt (argc, argv, "d:vwh")) != -1) {
+		switch (c) {
+		case 'd':
+			device = optarg;
+			break;
+		case 'v':
+			v = 1;
+			break;
+		case 'w':
+			show_hw = 1;
+			break;
+		case 'h':
+			zds_help();
+			exit(1);
+			break;
+		}
+	}
+
+	n = scandir(ZIO_DIR_DEV, &namelist, 0, alphasort);
+	if (n < 0)
+		exit(1);
+	for (i = 0; i < n; ++i) {
+		/* If search is disabled, look only for specified device */
+		if (device && strcmp(namelist[i]->d_name, device))
+			continue;
+
+		if (!strcmp(namelist[i]->d_name, ".") || !strcmp(namelist[i]->d_name, ".."))
+			continue;
+		if (!show_hw && !strncmp("hw-", namelist[i]->d_name, 3)) {
+			continue;
+		}
+
+		printf("%s\n", namelist[i]->d_name);
+		if (v)
+			zds_print_all_attributes(namelist[i]->d_name);
+	}
+
 	exit(0);
 }
