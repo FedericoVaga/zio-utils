@@ -6,7 +6,7 @@ LIB := -static -L$(LIBZIO) -lzio
 
 HOSTCC ?= gcc
 
-PROGS := zio-dev-status
+PROGS := lszio
 
 all: $(PROGS)
 
