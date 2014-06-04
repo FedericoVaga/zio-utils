@@ -31,21 +31,25 @@ static void zds_help()
 	printf("-h: show this help\n\n");
 }
 
-static void zds_print_attributes(struct sysfs_attr **attr, unsigned int n, char *space)
+static void zds_print_attributes(struct zio_attr_set *set, char *space)
 {
 	uint32_t val;
 	int i, err;
 
-	for (i = 0; i < n; ++i) {
-		if (attr[i]->md & (S_IRUSR | S_IRGRP | S_IROTH)) {
-			err = zio_read_attribute(attr[i], &val);
+	for (i = 0; i < set->n_attr; ++i) {
+		if (set->attr[i].attribute->md &
+		    (S_IRUSR | S_IRGRP | S_IROTH)) {
+			err = zio_attr_read(set->attr[i].attribute, &val);
 			if (err)
-				printf("%s%s: error\n", space, attr[i]->name);
+				printf("%s%s: error\n", space,
+				       set->attr[i].attribute->name);
 			else
-				printf("%s%s: %d\n", space, attr[i]->name, val);
+				printf("%s%s: %d\n", space,
+				       set->attr[i].attribute->name, val);
 
 		} else {
-			printf("%s%s: write-only\n", space, attr[i]->name);
+			printf("%s%s: write-only\n", space,
+			       set->attr[i].attribute->name);
 		}
 	}
 }
@@ -57,35 +61,35 @@ static void zds_print_all_attributes(char *name)
 	struct zio_channel *chan;
 	int i, j;
 
-	zdev = zio_create_device(name);
+	zdev = zio_device_create(name);
 	if (!zdev) {
 		printf("Error");
 		exit(1);
 	}
 
 	printf("    Device name: %s\n", name);
-	zds_print_attributes(zdev->attr, zdev->n_attr, "    ");
+	zds_print_attributes(&zdev->set, "    ");
 
 	for (i = 0; i < zdev->n_cset; ++i) {
 		cset = &zdev->cset[i];
 		printf("\n        Channel Set: %s\n", cset->dir->name);
-		zds_print_attributes(cset->attr, cset->n_attr, "        ");
-		if (cset->trg) {
-			printf("\n            Trigger: %s\n", cset->trg->dir->name);
-			zds_print_attributes(cset->trg->attr, cset->trg->n_attr, "            ");
-		}
+		zds_print_attributes(&cset->set, "        ");
+
+		printf("\n            Trigger: %s\n", cset->trg.dir->name);
+		zds_print_attributes(&cset->trg.set, "            ");
+
 		for (j = 0; j < cset->n_chan; ++j) {
 			chan = &cset->chan[j];
 			printf("\n            Channel: %s\n", chan->dir->name);
-			zds_print_attributes(chan->attr, chan->n_attr, "            ");
-			if (chan->buf) {
-				printf("\n                Buffer: %s\n", chan->buf->dir->name);
-				zds_print_attributes(chan->buf->attr, chan->buf->n_attr, "                ");
-			}
+			zds_print_attributes(&chan->set, "            ");
+			printf("\n                Buffer: %s\n",
+			       chan->buf.dir->name);
+			zds_print_attributes(&chan->buf.set,
+					     "                ");
 		}
 	}
 
-	zio_destroy_device(zdev);
+	zio_device_destroy(zdev);
 }
 
 int main(int argc, char *argv[])
