@@ -24,7 +24,7 @@ static void zds_help()
 {
 	printf("\nlszio [options]\n\n");
 	printf("The program list connected ZIO devices\n\n");
-	printf("Options:");
+	printf("Options:\n");
 	printf("-v: verbose output, show device attributes status\n");
 	printf("-d <device name>: look for a particular device\n");
 	printf("-w: show ZIO hardware device\n");

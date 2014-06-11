@@ -1,7 +1,7 @@
 ZIO ?= $(HOME)/zio
 LIBZIO ?= $(HOME)/libzio
 
-HOST_EXTRACFLAGS += -I$(ZIO)/include -I$(LIBZIO)
+HOST_EXTRACFLAGS += -I$(ZIO)/include -I$(LIBZIO) -ggdb
 LIB := -static -L$(LIBZIO) -lzio
 
 HOSTCC ?= gcc
